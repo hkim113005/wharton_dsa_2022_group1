@@ -1,0 +1,272 @@
+---
+title: "Artist Popularity Data Collection and Organization"
+author: "Hyungjae Kim"
+output:
+  beamer_presentation:
+    slide_level: 3
+    theme: Boadilla
+  ioslides_presentation: default
+  slidy_presentation: default
+header-includes:
+- \AtBeginSection[]{\begin{frame}\tableofcontents[currentsection]\end{frame}}
+- \AtBeginSubsection[]{\begin{frame}\tableofcontents[currentsubsection]\end{frame}{}}
+editor_options: 
+  chunk_output_type: inline
+---
+
+
+```{r init}
+knitr::opts_chunk$set(echo = T, cache = T, fig.width=8, fig.height=4)
+
+if(!require('pacman')) {
+  install.packages('pacman')
+}
+pacman::p_load(ggplot2, dplyr, glmnet, car, tidyverse, gridExtra, ggrepel, plotly, skimr, data.table, xtable) 
+
+set.seed(9)
+```
+
+```{r load data}
+musico_data <- fread("data/original/musico_artists_popularity.csv", sep = "\t")
+urls_data <- fread("data/spotify_urls.csv")
+features_data <- fread("data/spotify_features.csv")
+bb_data.filtered <- fread("data/billboard_t100_filtered.csv")
+hitness_data <- fread("data/billboard_hitness.csv")
+artists_data <- fread("data/spotify_artists.csv")
+dates_data <- fread("data/spotify_dates.csv")
+bb_data <- fread("data/original/billboard_top100.csv")
+
+popularity_data <- fread("data/musico_popularity.csv")
+sentiment_data <- fread("data/genius_vader_sentiments.csv")
+```
+
+```{r check data}
+summary(musico_data)
+summary(urls_data)
+summary(features_data)
+summary(bb_data.filtered)
+summary(hitness_data)
+summary(artists_data)
+summary(popularity_data)
+summary(sentiment_data)
+```
+
+```{r joining}
+dataset <- bb_data.filtered %>%
+  left_join(urls_data, by = "new_id") %>%
+  left_join(hitness_data, by = "new_id") %>%
+  left_join(artists_data, by = "new_id") %>%
+  left_join(dates_data, by = "new_id") %>%
+  left_join(features_data, by = "new_id") %>%
+  left_join(popularity_data, by = "new_id") %>%
+  left_join(sentiment_data, by = "new_id") %>%
+  mutate(url = url.x, artists_ids = artist_id, track_id = id) %>%
+  select(-uri, -track_href, -analysis_url, -url.y, -url.x, -artist_id, -id, -type) %>%
+  filter(popularity != -1)
+
+summary(dataset)
+
+dataset <- na.omit(dataset)
+
+dim(dataset)
+
+write.csv(dataset %>%
+  select(new_id), "new_id.csv", row.names = F)
+
+write.csv(dataset, "group1_hit_songs_dataset_raw1.csv", row.names = F)
+```
+
+```{r clean}
+dataset.1 <- fread("group1_hit_songs_dataset_raw1.csv") %>%
+  select(-track_hist, -url, -artists_ids, -track_id, -chart_start, -chart_end, -new_id)
+dataset.1$mode <- factor(dataset.1$mode)
+dataset.1$key <- factor(dataset.1$key)
+
+dataset.2 <- dataset.1 %>%
+  mutate(hitness = hitness > 250)
+
+dataset.3 <- dataset.2 %>%
+  mutate(duration_min = duration_ms / 1000 / 60, tempo_div_100 = tempo / 100, popularity_div_1000 = popularity / 1000) %>%
+  relocate(duration_ms, .before = duration_min) %>%
+  relocate(tempo, .before = tempo_div_100) %>%
+  relocate(popularity, .before = popularity_div_1000) %>%
+  select(-c(duration_ms, tempo, popularity))
+
+dataset.4 <- dataset.2 %>%
+  mutate(duration_min = duration_ms / 1000 / 60, log_popularity = log(popularity)) %>%
+  select(-c(duration_ms, popularity))
+
+dataset.5 <- dataset.2 %>%
+  mutate(duration_min = duration_ms / 1000 / 60, log_tempo = log(tempo), log_popularity = log(popularity)) %>%
+  select(-c(duration_ms, tempo, popularity))
+
+dataset.6 <- dataset.1 %>%
+  mutate(duration_min = duration_ms / 1000 / 60, log_tempo = log(tempo), log_popularity = log(popularity)) %>%
+  select(-c(duration_ms, tempo, popularity))
+
+dataset.7 <- dataset.2 %>%
+  mutate(scaled_duration = duration_ms / max(duration_ms), scaled_tempo = tempo / max(tempo), scaled_popularity = popularity / max(popularity)) %>%
+  select(-c(duration_ms, tempo, popularity))
+```
+
+```{r hist}
+hist(dataset.2$popularity)
+hist(dataset.3$popularity_div_1000)
+hist(dataset.4$log_popularity)
+```
+
+```{r write}
+write.csv(dataset.1, "group1_hit_songs_dataset_ml_1.csv", row.names = F)
+
+write.csv(dataset.2, "group1_hit_songs_dataset_ml_2.csv", row.names = F)
+
+write.csv(dataset.3, "group1_hit_songs_dataset_ml_3.csv", row.names = F)
+
+write.csv(dataset.4, "group1_hit_songs_dataset_ml_4.csv", row.names = F)
+
+write.csv(dataset.5, "group1_hit_songs_dataset_ml_5.csv", row.names = F)
+
+write.csv(dataset.6, "group1_hit_songs_dataset_ml_6.csv", row.names = F)
+
+write.csv(dataset.7, "group1_hit_songs_dataset_ml_7.csv", row.names = F)
+
+```
+
+```{r data split}
+n <- nrow(dataset.5)
+dataset.5.train.index <- sample(n, n * 0.75)
+
+dataset.5.train <- dataset.5[dataset.5.train.index, ]
+dataset.5.test <- dataset.5.train <- dataset.5[-dataset.5.train.index, ]
+
+n <- nrow(dataset.7)
+dataset.7.train.index <- sample(n, n * 0.75)
+
+dataset.7.train <- dataset.7[dataset.7.train.index, ]
+dataset.7.test <- dataset.7.train <- dataset.7[-dataset.7.train.index, ]
+
+n <- nrow(dataset.2)
+dataset.2.train.index <- sample(n, n * 0.75)
+
+dataset.2.train <- dataset.2[dataset.2.train.index, ]
+dataset.2.test <- dataset.2.train <- dataset.2[-dataset.2.train.index, ]
+```
+
+
+```{r linear models}
+fit.lm.5 <- lm(hitness ~ ., dataset.5.train)
+# summary(fit.lm.5)
+Anova(fit.lm.5)
+# plot(fit.lm.5)
+
+fit.lm.5.accuracy <- 1 - mean(abs(round(predict(fit.lm.5, dataset.5.test)) - dataset.5.test$hitness))
+
+
+fit.lm.7 <- lm(hitness ~ ., dataset.7.train)
+# summary(fit.lm.7)
+# Anova(fit.lm.7)
+# plot(fit.lm.7)
+
+fit.lm.7.accuracy <- 1 - mean(abs(round(predict(fit.lm.7, dataset.7.test)) - dataset.7.test$hitness))
+
+
+fit.lm.2 <- lm(hitness ~ ., dataset.2.train)
+# Anova(fit.lm.2)
+
+fit.lm.2.accuracy <- 1 - mean(abs(round(predict(fit.lm.2, dataset.2.test)) - dataset.2.test$hitness))
+```
+
+```{r log reg}
+fit.glm.5 <- glm(hitness ~ ., dataset.5.train, family = binomial(logit))
+# summary(fit.glm.5)
+Anova(fit.glm.5)
+# plot(fit.glm.5)
+
+fit.glm.5.accuracy <- 1 - mean(abs(round(predict(fit.glm.5, dataset.5.test, type = "response")) - dataset.5.test$hitness))
+
+
+fit.glm.7 <- glm(hitness ~ ., dataset.7.train, family = binomial(logit))
+# summary(fit.glm.7)
+# Anova(fit.glm.7)
+# plot(fit.glm.7)
+
+fit.glm.7.accuracy <- 1 - mean(abs(round(predict(fit.glm.7, dataset.7.test, type = "response")) - dataset.7.test$hitness))
+
+fit.glm.2 <- glm(hitness ~ ., dataset.2.train, family = binomial(logit))
+# summary(fit.glm.2)
+# Anova(fit.glm.2)
+# plot(fit.glm.2)
+
+fit.glm.2.accuracy <- 1 - mean(abs(round(predict(fit.glm.2, dataset.2.test, type = "response")) - dataset.2.test$hitness))
+```
+
+```{r lasso}
+x.5 <- data.matrix(dataset.5.train %>% select(-hitness))
+y.5 <- dataset.5.train %>% select(hitness) %>% .$hitness
+
+cv_model.5 <- cv.glmnet(x.5, y.5, alpha = 1)
+# plot(cv_model)
+
+fit.lasso.5 <- glmnet(x.5, y.5, alpha = 1, lambda = cv_model.5$lambda.1se)
+fit.lasso.5.coef <- coef(fit.lasso.5)
+fit.lasso.5.coef <- fit.lasso.5.coef[which(fit.lasso.5.coef != 0), ]
+fit.lasso.5.names <- rownames(data.matrix(fit.lasso.5.coef))[-1]
+
+predict.lasso.5 <- predict(fit.lasso.5, newx = data.matrix(dataset.5.test %>% select(-hitness)), type = "response")
+fit.lasso.5.accuracy <- 1 - mean(abs(round(predict.lasso.5) - dataset.5.test$hitness))
+
+
+x.7 <- data.matrix(dataset.7.train %>% select(-hitness))
+y.7 <- dataset.7.train %>% select(hitness) %>% .$hitness
+
+cv_model.7 <- cv.glmnet(x.7, y.7, alpha = 1)
+# plot(cv_model)
+
+fit.lasso.7 <- glmnet(x.7, y.7, alpha = 1, lambda = cv_model.7$lambda.1se)
+fit.lasso.7.coef <- coef(fit.lasso.7)
+fit.lasso.7.coef <- fit.lasso.7.coef[which(fit.lasso.7.coef != 0), ]
+fit.lasso.7.names <- rownames(data.matrix(fit.lasso.7.coef))[-1]
+
+predict.lasso.7 <- predict(fit.lasso.7, newx = data.matrix(dataset.7.test %>% select(-hitness)), type = "response")
+fit.lasso.7.accuracy <- 1 - mean(abs(round(predict.lasso.7) - dataset.7.test$hitness))
+
+
+x.2 <- data.matrix(dataset.2.train %>% select(-hitness))
+y.2 <- dataset.2.train %>% select(hitness) %>% .$hitness
+
+cv_model.2 <- cv.glmnet(x.2, y.2, alpha = 1)
+# plot(cv_model)
+
+fit.lasso.2 <- glmnet(x.2, y.2, alpha = 1, lambda = cv_model.2$lambda.1se)
+fit.lasso.2.coef <- coef(fit.lasso.2)
+fit.lasso.2.coef <- fit.lasso.2.coef[which(fit.lasso.2.coef != 0), ]
+fit.lasso.2.names <- rownames(data.matrix(fit.lasso.2.coef))[-1]
+
+predict.lasso.2 <- predict(fit.lasso.2, newx = data.matrix(dataset.2.test %>% select(-hitness)), type = "response")
+fit.lasso.2.accuracy <- 1 - mean(abs(round(predict.lasso.2) - dataset.2.test$hitness))
+```
+
+```{r log reg lasso}
+fit.lasso.glm.5 <- glm(as.formula(paste("hitness ~", paste(fit.lasso.5.names, collapse = " + "))), dataset.5.train, family = binomial(logit))
+
+predict.lasso.glm.7 <- predict(fit.lasso.glm.5, dataset.5.test %>% select(fit.lasso.5.names), type = "response")
+fit.lasso.glm.5.accuracy <- 1 - mean(abs(round(predict.lasso.glm.7) - dataset.5.test$hitness))
+
+Anova(fit.lasso.glm.5)
+
+
+fit.lasso.glm.7 <- glm(as.formula(paste("hitness ~", paste(fit.lasso.7.names, collapse = " + "))), dataset.7.train, family = binomial(logit))
+
+predict.lasso.glm.7 <- predict(fit.lasso.glm.7, dataset.7.test %>% select(fit.lasso.7.names), type = "response")
+fit.lasso.glm.7.accuracy <- 1 - mean(abs(round(predict.lasso.glm.7) - dataset.7.test$hitness))
+
+# Anova(fit.lasso.glm.7)
+
+
+fit.lasso.glm.2 <- glm(as.formula(paste("hitness ~", paste(fit.lasso.2.names, collapse = " + "))), dataset.2.train, family = binomial(logit))
+
+predict.lasso.glm.2 <- predict(fit.lasso.glm.2, dataset.2.test %>% select(fit.lasso.2.names), type = "response")
+fit.lasso.glm.2.accuracy <- 1 - mean(abs(round(predict.lasso.glm.2) - dataset.2.test$hitness))
+
+# Anova(fit.lasso.glm.2)
+```

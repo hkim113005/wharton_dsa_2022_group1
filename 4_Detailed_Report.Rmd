@@ -1,0 +1,173 @@
+---
+title: "4_Detailed_Report"
+author: "Hyungjae Kim"
+date: '2022-08-12'
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = F, comment = NA, cache = T, fig.width=8, fig.height=4)
+
+if(!require('pacman')) {
+  install.packages('pacman')
+}
+pacman::p_load(ggplot2, dplyr, glmnet, car, tidyverse, gridExtra, ggrepel, plotly, skimr, data.table, xtable) 
+
+set.seed(9)
+```
+
+```{r load}
+dataset.raw <- fread("group1_hit_songs_dataset_raw1.csv")
+dataset.1 <- fread("group1_hit_songs_dataset_ml_1.csv") 
+dataset.5 <- fread("group1_hit_songs_dataset_ml_5.csv") 
+```
+
+## Dataset
+### Raw Dataset
+Removed `track_hist`, `url`, `artists_ids`, `track_id`, `chart_start`, `chart_end`, and `new_id`.
+```{r 1 head}
+head(dataset.1)
+```
+
+### Classified Dataset
+Classified songs as hit songs by using a `hitness` threshold of 250, converted duration from milliseconds to minutes, and log scaled popularity and tempo. This dataset was used for all the models.
+```{r 5 head}
+head(dataset.5)
+```
+
+### Log Scaling Popularity
+```{r log scale pop}
+hist(dataset.1$popularity, main = "Artist Popularity Score", xlab = "popularity")
+hist(dataset.5$log_popularity, main = "Log of Artist Popularity Score", xlab = "log(popularity)")
+```
+
+### Log Scaling Tempo
+```{r log scale tempo}
+hist(dataset.1$tempo, main = "Tempo", xlab = "tempo")
+hist(dataset.5$log_tempo, main = "Log of Tempo", xlab = "log(tempo)")
+```
+
+### Number of Rows / Feature Vectors
+```{r}
+nrow(dataset.5)
+```
+
+### Summary of Raw Data (Continuous Hitness Values and Unscaled)
+```{r summarize clean base}
+summary(dataset.1)
+```
+
+### Summary of Classified and Cleaned Data (Factorized and Scaled)
+```{r summarize ml base}
+summary(dataset.5)
+```
+
+```{r data split}
+n <- nrow(dataset.5)
+dataset.5.train.index <- sample(n, n * 0.75)
+
+dataset.5.train <- dataset.5[dataset.5.train.index, ]
+dataset.5.test <- dataset.5.train <- dataset.5[-dataset.5.train.index, ]
+```
+
+## Linear Model (OLS)
+```{r lm}
+fit.lm.5 <- lm(hitness ~ ., dataset.5.train)
+fit.lm.5.accuracy <- 1 - mean(abs(round(predict(fit.lm.5, dataset.5.test)) - dataset.5.test$hitness))
+```
+
+### Accuracy
+```{r lm accuracy}
+fit.lm.5.accuracy
+```
+
+### Summary (Coefficients, F-Statistics, P-Value)
+```{r lm coef}
+summary(fit.lm.5)
+```
+
+### Anova Table
+```{r lm anova}
+Anova(fit.lm.5)
+```
+
+### Plots (Residuals vs Fitted, Normal Q-Q, Scale-Location, Residuals vs Leverage)
+```{r lm plot}
+plot(fit.lm.5)
+```
+
+## Logistic Regression
+```{r log reg}
+fit.glm.5 <- glm(hitness ~ ., dataset.5.train, family = binomial(logit))
+
+fit.glm.5.accuracy <- 1 - mean(abs(round(predict(fit.glm.5, dataset.5.test, type = "response")) - dataset.5.test$hitness))
+```
+
+### Accuracy
+```{r log reg accuracy}
+fit.glm.5.accuracy
+```
+
+### Summary (Coefficients, F-Statistics, P-Value)
+```{r log reg coef}
+summary(fit.glm.5)
+```
+
+### Anova Table
+```{r log reg anova}
+Anova(fit.glm.5)
+```
+### Plots (Residuals vs Fitted, Normal Q-Q, Scale-Location, Residuals vs Leverage)
+```{r log reg plots}
+plot(fit.glm.5)
+```
+
+```{r lasso}
+x.5 <- data.matrix(dataset.5.train %>% select(-hitness))
+y.5 <- dataset.5.train %>% select(hitness) %>% .$hitness
+
+cv_model.5 <- cv.glmnet(x.5, y.5, alpha = 1)
+
+fit.lasso.5 <- glmnet(x.5, y.5, alpha = 1, lambda = cv_model.5$lambda.1se)
+fit.lasso.5.coef <- coef(fit.lasso.5)
+fit.lasso.5.coef <- fit.lasso.5.coef[which(fit.lasso.5.coef != 0), ]
+fit.lasso.5.names <- rownames(data.matrix(fit.lasso.5.coef))[-1]
+
+predict.lasso.5 <- predict(fit.lasso.5, newx = data.matrix(dataset.5.test %>% select(-hitness)), type = "response")
+fit.lasso.5.accuracy <- 1 - mean(abs(round(predict.lasso.5) - dataset.5.test$hitness))
+```
+
+## Logistic LASSO Regression
+```{r log lasso reg, error = F}
+fit.lasso.glm.5 <- glm(as.formula(paste("hitness ~", paste(all_of(fit.lasso.5.names), collapse = " + "))), dataset.5.train, family = binomial(logit))
+
+predict.lasso.glm.5 <- predict(fit.lasso.glm.5, dataset.5.test %>% select(all_of(fit.lasso.5.names)), type = "response")
+fit.lasso.glm.5.accuracy <- 1 - mean(abs(round(predict.lasso.glm.5) - dataset.5.test$hitness))
+```
+
+### Accuracy
+```{r log lasso reg accuracy}
+fit.lasso.glm.5.accuracy
+```
+
+### LASSO Log Selection (1SE)
+```{r lasso plot}
+plot(cv_model.5)
+```
+
+### Summary (Coefficients, F-Statistics, P-Value)
+```{r log lasso reg coef}
+summary(fit.lasso.glm.5)
+```
+
+### Anova Table
+```{r log lasso reg anova}
+Anova(fit.lasso.glm.5)
+```
+
+### Plots (Residuals vs Fitted, Normal Q-Q, Scale-Location, Residuals vs Leverage)
+```{r log lasso reg plots}
+plot(fit.lasso.glm.5)
+```

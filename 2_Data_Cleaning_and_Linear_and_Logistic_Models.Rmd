@@ -16,7 +16,7 @@ editor_options:
 
 
 ```{r init}
-knitr::opts_chunk$set(echo = T, cache = T, fig.width=8, fig.height=4)
+knitr::opts_chunk$set(echo = F, cache = T, fig.width=8, fig.height=4)
 
 if(!require('pacman')) {
   install.packages('pacman')
@@ -51,7 +51,7 @@ summary(popularity_data)
 summary(sentiment_data)
 ```
 
-```{r joining}
+```{r joining, echo = F}
 dataset <- bb_data.filtered %>%
   left_join(urls_data, by = "new_id") %>%
   left_join(hitness_data, by = "new_id") %>%
@@ -110,9 +110,8 @@ dataset.7 <- dataset.2 %>%
 ```
 
 ```{r hist}
-hist(dataset.2$popularity)
-hist(dataset.3$popularity_div_1000)
-hist(dataset.4$log_popularity)
+hist(dataset.1$popularity)
+hist(dataset.5$log_popularity)
 ```
 
 ```{r write}
@@ -129,7 +128,11 @@ write.csv(dataset.5, "group1_hit_songs_dataset_ml_5.csv", row.names = F)
 write.csv(dataset.6, "group1_hit_songs_dataset_ml_6.csv", row.names = F)
 
 write.csv(dataset.7, "group1_hit_songs_dataset_ml_7.csv", row.names = F)
+```
 
+```{r summarize, echo = T}
+nrow(dataset.1)
+summary(dataset.1)
 ```
 
 ```{r data split}
@@ -153,15 +156,16 @@ dataset.2.test <- dataset.2.train <- dataset.2[-dataset.2.train.index, ]
 ```
 
 
-```{r linear models}
+```{r linear models, echo = T}
 fit.lm.5 <- lm(hitness ~ ., dataset.5.train)
-# summary(fit.lm.5)
+summary(fit.lm.5)
 Anova(fit.lm.5)
-# plot(fit.lm.5)
+plot(fit.lm.5)
 
 fit.lm.5.accuracy <- 1 - mean(abs(round(predict(fit.lm.5, dataset.5.test)) - dataset.5.test$hitness))
+```
 
-
+```{r other lm}
 fit.lm.7 <- lm(hitness ~ ., dataset.7.train)
 # summary(fit.lm.7)
 # Anova(fit.lm.7)
@@ -176,15 +180,16 @@ fit.lm.2 <- lm(hitness ~ ., dataset.2.train)
 fit.lm.2.accuracy <- 1 - mean(abs(round(predict(fit.lm.2, dataset.2.test)) - dataset.2.test$hitness))
 ```
 
-```{r log reg}
+```{r log reg, echo = T}
 fit.glm.5 <- glm(hitness ~ ., dataset.5.train, family = binomial(logit))
-# summary(fit.glm.5)
+summary(fit.glm.5)
 Anova(fit.glm.5)
-# plot(fit.glm.5)
+plot(fit.glm.5)
 
 fit.glm.5.accuracy <- 1 - mean(abs(round(predict(fit.glm.5, dataset.5.test, type = "response")) - dataset.5.test$hitness))
+```
 
-
+```{r other log reg}
 fit.glm.7 <- glm(hitness ~ ., dataset.7.train, family = binomial(logit))
 # summary(fit.glm.7)
 # Anova(fit.glm.7)
@@ -200,7 +205,7 @@ fit.glm.2 <- glm(hitness ~ ., dataset.2.train, family = binomial(logit))
 fit.glm.2.accuracy <- 1 - mean(abs(round(predict(fit.glm.2, dataset.2.test, type = "response")) - dataset.2.test$hitness))
 ```
 
-```{r lasso}
+```{r lasso, echo = T}
 x.5 <- data.matrix(dataset.5.train %>% select(-hitness))
 y.5 <- dataset.5.train %>% select(hitness) %>% .$hitness
 
@@ -214,8 +219,9 @@ fit.lasso.5.names <- rownames(data.matrix(fit.lasso.5.coef))[-1]
 
 predict.lasso.5 <- predict(fit.lasso.5, newx = data.matrix(dataset.5.test %>% select(-hitness)), type = "response")
 fit.lasso.5.accuracy <- 1 - mean(abs(round(predict.lasso.5) - dataset.5.test$hitness))
+```
 
-
+```{r other lasso}
 x.7 <- data.matrix(dataset.7.train %>% select(-hitness))
 y.7 <- dataset.7.train %>% select(hitness) %>% .$hitness
 
@@ -253,8 +259,9 @@ predict.lasso.glm.7 <- predict(fit.lasso.glm.5, dataset.5.test %>% select(fit.la
 fit.lasso.glm.5.accuracy <- 1 - mean(abs(round(predict.lasso.glm.7) - dataset.5.test$hitness))
 
 Anova(fit.lasso.glm.5)
+```
 
-
+```{r other log reg lasso}
 fit.lasso.glm.7 <- glm(as.formula(paste("hitness ~", paste(fit.lasso.7.names, collapse = " + "))), dataset.7.train, family = binomial(logit))
 
 predict.lasso.glm.7 <- predict(fit.lasso.glm.7, dataset.7.test %>% select(fit.lasso.7.names), type = "response")

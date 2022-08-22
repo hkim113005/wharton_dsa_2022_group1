@@ -30,7 +30,7 @@ pacman::p_load( glmnet, leaps, car, tidyverse, pROC, caret, dplyr, ggplot2,tidyr
 #Data Prep
 
 ``` {r}
-df <- read.csv('data/group1_hit_songs_dataset-1.csv', row.names = "X")
+df <- read.csv('data/group1_hit_songs_dataset_raw1.csv')
 names(df)
 str(df)
 print(head(df))
@@ -47,14 +47,17 @@ song_df$artists_ids <- gsub("\\[|\\]","", as.character(song_df$artists_ids))
 ``` {r}
 hitness_dist <- song_df %>% ggplot(aes(x = hitness)) +
   geom_histogram(fill = "#E48757", bins = 30) +
-  labs(title = "Distribution of Hitness of Song", 
+  labs(title = "Distribution of the Hitness of Songs", 
        x = "Score of Hitness",
        y = "Frequency") +
   theme_bw() +
   geom_vline(xintercept = median(song_df$hitness), linetype = "dotted", 
              color = "#1E0475", size = 1) +
-  geom_text(aes(x=425, label="\n\nMedian = 215", y=1350), colour="red", text=element_text(size=10))
+  geom_text(aes(x=425, label="\n\nMedian = 220", y=1350), colour="red", text=element_text(size=10))
+
+pdf("hitness_distribution.pdf")
 hitness_dist
+dev.off()
 
 median(song_df$hitness)
 ```
@@ -65,11 +68,14 @@ The distribution of "hitness" scores based on ranking the combination of peak_po
 #song duration vs. hitness
 duration <- song_df %>% ggplot(aes(x = duration_ms)) +
   geom_histogram(fill = "#6094B1", bins = 30) +
-  labs(title = "Duration of Song Distribution", 
+  labs(title = "Distribution of the Duration of Songs", 
        x = "Duration (ms)",
        y = "Frequency") +
   theme_bw()
+
+pdf("duration_distribution.pdf")
 duration
+dev.off()
 ```
 Song tends to run from 1.7e+05 ms to 2.8e+05 ms.
 
@@ -80,12 +86,14 @@ artist_group <- song_df %>% group_by(artists_ids)
 pop_dist <- artist_group %>%
   ggplot(aes(popularity)) +
   geom_histogram(fill = "#55A3FF", bins = 10) +
-  labs(title = "Distribution of Artist's Popularity",
-       x = "Artist's Popularity", 
+  labs(title = "Distribution of the Artist Popularities",
+       x = "Artist Popularity", 
        y = "Frequency") +
   theme_bw()
-pop_dist
 
+pdf("images/artist_pop_distribution.pdf")
+pop_dist
+dev.off()
 
 #pop_arrange = song_df %>% arrange(desc(popularity))
 #artist_label = filter(song_df, popularity > 9000)
@@ -104,10 +112,13 @@ hit_bar <- top_hit %>% ggplot(aes(x = forcats::fct_reorder(song, -hitness),
   theme(legend.position = "none",
         plot.margin = ggplot2::margin(t = 5, r = 5, b = 5, l = 0, unit = "pt"), 
         axis.text.x = element_text(angle = -40, vjust = 0, hjust = 0)) +
-  labs(title = "Top 30 Hit Song",
+  labs(title = "Hitness of Top 30 Songs",
        x = "Song",
        y = "Hitness") 
+
+pdf("images/top30_hitness.pdf")
 hit_bar
+dev.off()
 ```
 
 ###Pop vs. Hitness
@@ -115,13 +126,16 @@ hit_bar
 #pop vs. hitness
 artist_pop <- song_df %>% ggplot(aes(x = popularity, y = hitness)) +
   geom_point(color = "#4B3FE3") +
-  labs(title = "Artist's Popularity vs. Hitness", 
-       x = "Popularity of Artist", 
+  labs(title = "Hitness vs Artist Popularity", 
+       x = "Artist Popularity", 
        y = "Hitness") +
   geom_smooth(method = "lm") +
   theme_bw() +
   theme(legend.position = "none")
+
+pdf("images/hitness_vs_artist_pop.pdf")
 artist_pop
+dev.off()
 
 #With top hit song
 hit_song <- top_hit$song
@@ -134,8 +148,8 @@ pop_w_top <- song_df %>% ggplot(aes(x = popularity, y = hitness)) +
              aes(col = song),
              size = 5,
              shape = 13) +
-  labs(title = "Artist's Popularity vs. Hitness", 
-       x = "Popularity of Artist", 
+  labs(title = "Hitness vs Artist Popularity (Top 30 Highlighted)", 
+       x = "Artist Popularity", 
        y = "Hitness") +
   geom_smooth(method = "lm") +
   theme_bw() + 
@@ -145,7 +159,10 @@ pop_w_top <- song_df %>% ggplot(aes(x = popularity, y = hitness)) +
             position = position_dodge(width = 1),
             vjust = -1.3) +
   theme(legend.position = "none")
+
+pdf("images/hitness_vs_artist_pop_(highlighted_top_30).pdf")
 pop_w_top 
+dev.off()
 ```
 There is a slight positive correlation between popularity of an artist and the hitness score of a song. This model predicts that for every increase in one point of artist's popularity, hitness increases by 1.51 point.
 
@@ -154,12 +171,16 @@ There is a slight positive correlation between popularity of an artist and the h
 #dance vs hitness
 dance <- song_df %>% ggplot(aes(x = danceability, y = hitness)) +
   geom_point(color = "#B27BDF") + 
-  labs(title = "Danceability vs. Hitness", 
+  labs(title = "Hitness vs Danceability", 
        x = "Danceability", 
        y = "Hitness") +
   geom_smooth(method = "lm") +
   theme_bw() 
+
+pdf("images/hitness_vs_danceability.pdf")
 dance
+dev.off()
+
 summary(lm(hitness ~ danceability, song_df))
 ``` 
 There appears to be a positive correlation between danceability of a song and its hitness.
@@ -169,12 +190,16 @@ There appears to be a positive correlation between danceability of a song and it
 #acousticness vs hitness
 acoustic <- song_df %>% ggplot(aes(x = acousticness, y = hitness)) +
   geom_point(color = "#E5CC66") + 
-  labs(title = "Acousticness vs. Hitness", 
+  labs(title = "Hitness vs Acousticness", 
        x = "Acousticness", 
        y = "Hitness") +
   geom_smooth(method = "lm") +
   theme_bw()
+
+pdf("hitness_vs_acousticness.pdf")
 acoustic
+dev.off()
+
 summary(lm(hitness ~ acousticness, song_df))
 ```
 There is a negative correlation between acousticness of a song and its hitness.
@@ -184,12 +209,16 @@ There is a negative correlation between acousticness of a song and its hitness.
 #valence
 valence_dist <- song_df %>% ggplot(aes(x = valence, y = hitness)) +
   geom_point(color = "#EC7666") + 
-  labs(title = "Valence vs. Hitness", 
+  labs(title = "Hitness vs Valence", 
        x = "Valence", 
        y = "Hitness") +
   geom_smooth(method = "lm") +
   theme_bw()
+
+pdf("hitness_vs_valence.pdf")
 valence_dist
+dev.off()
+
 summary(lm(hitness ~ valence, song_df))
 ```
 There appears to be weak negative correlation between score of positivity and hitness of a song.
@@ -199,12 +228,16 @@ There appears to be weak negative correlation between score of positivity and hi
 #speechiness
 speech <- song_df %>% ggplot(aes(x = speechiness, y = hitness)) +
   geom_point(color = "#5DC08F") + 
-  labs(title = "Speechiness vs. Hitness", 
+  labs(title = "Hitness vs Speechiness", 
        x = "Speechiness", 
        y = "Hitness") +
   geom_smooth(method = "lm") +
   theme_bw()
+
+pdf("hitness_vs_speechiness.pdf")
 speech
+dev.off()
+
 summary(lm(hitness ~ speechiness, song_df))
 ```
 There is a negative correlartion between speechiness and the level of hitness of a song.
@@ -214,12 +247,15 @@ There is a negative correlartion between speechiness and the level of hitness of
 #energy vs. hitness
 energy <- song_df %>% ggplot(aes(x = energy, y = hitness)) +
   geom_point(color = "#E799E9") + 
-  labs(title = "Energy vs. Hitness", 
+  labs(title = "Hitness vs Energy", 
        x = "Energy", 
        y = "Hitness") +
   geom_smooth(method = "lm") +
   theme_bw()
+
+pdf("hitness_vs_energy.pdf")
 energy
+dev.off()
 ```
 
 ###Liveness vs. Hitness
@@ -227,12 +263,60 @@ energy
 #liveness vs. hitness
 liveness <- song_df %>% ggplot(aes(x = liveness, y = hitness)) +
   geom_point(color = "#2DB9F4") + 
-  labs(title = "Liveness vs. Hitness", 
+  labs(title = "Hitness vs Liveness", 
        x = "Liveness", 
        y = "Hitness") +
   geom_smooth(method = "lm") +
   theme_bw()
+
+pdf("hitness_vs_liveness.pdf")
 liveness
+dev.off()
+```
+
+``` {r}
+#hitness vs sentiment
+sentiment <- song_df %>% ggplot(aes(x = sentiment, y = hitness)) +
+  geom_point(color = "#2DB9F4") + 
+  labs(title = "Hitness vs Sentiment", 
+       x = "Sentiment", 
+       y = "Hitness") +
+  geom_smooth(method = "lm") +
+  theme_bw()
+
+pdf("hitness_vs_sentiment.pdf")
+sentiment
+dev.off()
+```
+
+``` {r}
+#hitness vs loudness
+loudness <- song_df %>% ggplot(aes(x = loudness, y = hitness)) +
+  geom_point(color = "#2DB9F4") + 
+  labs(title = "Hitness vs Loudness", 
+       x = "Loudness", 
+       y = "Hitness") +
+  geom_smooth(method = "lm") +
+  theme_bw()
+
+pdf("hitness_vs_loudness.pdf")
+loudness
+dev.off()
+```
+
+``` {r}
+#hitness vs instrumentalness
+loudness <- song_df %>% ggplot(aes(x = instrumentalness, y = hitness)) +
+  geom_point(color = "#2DB9F4") + 
+  labs(title = "Hitness vs Instrumentalness", 
+       x = "Instrumentalness", 
+       y = "Hitness") +
+  geom_smooth(method = "lm") +
+  theme_bw()
+
+pdf("hitness_vs_instrumentalness.pdf")
+loudness
+dev.off()
 ```
 
 ###Mode
@@ -243,9 +327,12 @@ mode_vs_hit$mode <- as.factor(mode_vs_hit$mode)
 graph <- mode_vs_hit %>% group_by(mode)
 mode_gr <- ggplot(graph, aes(x = mode, y = hitness)) +
   geom_boxplot(aes(fill=mode))+
-  labs(title = "Mode vs. Hitness", x = "Mode", y = "Hitness") +
+  labs(title = "Hitness vs Mode", x = "Mode", y = "Hitness") +
   theme_bw()
+
+pdf("hitness_vs_mode.pdf")
 mode_gr
+dev.off()
 ```
 Although there appeas to be weak correlation between mode of a song and its hitness, mode = 1 seems to have higher median hitness and more outliers with high hitness.
 
@@ -257,9 +344,12 @@ time_sig$time_signature <- as.factor(time_sig$time_signature)
 year <- time_sig %>% group_by(chart_end)
 sig_vs_hit <- ggplot(year, aes(x = time_signature, y = hitness)) +
   geom_boxplot(aes(fill=time_signature))+
-  labs(title = "Time Signature vs. Hitness", x = "Time Signature", y = "Hitness") +
+  labs(title = "Hitness vs Time Signature", x = "Time Signature", y = "Hitness") +
   theme_bw()
+
+pdf("hitness_vs_time_signature.pdf")
 sig_vs_hit
+dev.off()
 ```
 A 4 4 time signature seems to have more outliers which correlate with higher hitness.
 
@@ -270,8 +360,10 @@ key_gr$key <- as.factor(key_gr$key)
 gr <- key_gr %>% group_by(key)
 key <- ggplot(key_gr, aes(x = key, y = hitness)) +
   geom_bar(stat = "identity", aes(fill=key))+
-  labs(title = "Key vs. Hitness", x = "Key", y = "Hitness") +
+  labs(title = "Hitness vs Key", x = "Key", y = "Hitness") +
   theme_bw()
+
+pdf("hitness_vs_key.pdf")
 key
 ```
 

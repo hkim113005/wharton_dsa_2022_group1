@@ -55,7 +55,7 @@ hitness_dist <- song_df %>% ggplot(aes(x = hitness)) +
              color = "#1E0475", size = 1) +
   geom_text(aes(x=425, label="\n\nMedian = 220", y=1350), colour="red", text=element_text(size=10))
 
-pdf("hitness_distribution.pdf")
+png("plots/hitness_distribution.png")
 hitness_dist
 dev.off()
 
@@ -73,7 +73,7 @@ duration <- song_df %>% ggplot(aes(x = duration_ms)) +
        y = "Frequency") +
   theme_bw()
 
-pdf("duration_distribution.pdf")
+png("plots/duration_distribution.png")
 duration
 dev.off()
 ```
@@ -91,7 +91,7 @@ pop_dist <- artist_group %>%
        y = "Frequency") +
   theme_bw()
 
-pdf("images/artist_pop_distribution.pdf")
+png("plots/artist_pop_distribution.png")
 pop_dist
 dev.off()
 
@@ -116,7 +116,7 @@ hit_bar <- top_hit %>% ggplot(aes(x = forcats::fct_reorder(song, -hitness),
        x = "Song",
        y = "Hitness") 
 
-pdf("images/top30_hitness.pdf")
+png("plots/top30_hitness.png")
 hit_bar
 dev.off()
 ```
@@ -133,7 +133,7 @@ artist_pop <- song_df %>% ggplot(aes(x = popularity, y = hitness)) +
   theme_bw() +
   theme(legend.position = "none")
 
-pdf("images/hitness_vs_artist_pop.pdf")
+png("plots/hitness_vs_artist_pop.png")
 artist_pop
 dev.off()
 
@@ -160,7 +160,7 @@ pop_w_top <- song_df %>% ggplot(aes(x = popularity, y = hitness)) +
             vjust = -1.3) +
   theme(legend.position = "none")
 
-pdf("images/hitness_vs_artist_pop_(highlighted_top_30).pdf")
+png("plots/hitness_vs_artist_pop_(highlighted_top_30).png")
 pop_w_top 
 dev.off()
 ```
@@ -177,7 +177,7 @@ dance <- song_df %>% ggplot(aes(x = danceability, y = hitness)) +
   geom_smooth(method = "lm") +
   theme_bw() 
 
-pdf("images/hitness_vs_danceability.pdf")
+png("plots/hitness_vs_danceability.png")
 dance
 dev.off()
 
@@ -196,7 +196,7 @@ acoustic <- song_df %>% ggplot(aes(x = acousticness, y = hitness)) +
   geom_smooth(method = "lm") +
   theme_bw()
 
-pdf("hitness_vs_acousticness.pdf")
+png("plots/hitness_vs_acousticness.png")
 acoustic
 dev.off()
 
@@ -215,7 +215,7 @@ valence_dist <- song_df %>% ggplot(aes(x = valence, y = hitness)) +
   geom_smooth(method = "lm") +
   theme_bw()
 
-pdf("hitness_vs_valence.pdf")
+png("plots/hitness_vs_valence.png")
 valence_dist
 dev.off()
 
@@ -234,7 +234,7 @@ speech <- song_df %>% ggplot(aes(x = speechiness, y = hitness)) +
   geom_smooth(method = "lm") +
   theme_bw()
 
-pdf("hitness_vs_speechiness.pdf")
+png("plots/hitness_vs_speechiness.png")
 speech
 dev.off()
 
@@ -253,7 +253,7 @@ energy <- song_df %>% ggplot(aes(x = energy, y = hitness)) +
   geom_smooth(method = "lm") +
   theme_bw()
 
-pdf("hitness_vs_energy.pdf")
+png("plots/hitness_vs_energy.png")
 energy
 dev.off()
 ```
@@ -269,7 +269,7 @@ liveness <- song_df %>% ggplot(aes(x = liveness, y = hitness)) +
   geom_smooth(method = "lm") +
   theme_bw()
 
-pdf("hitness_vs_liveness.pdf")
+png("plots/hitness_vs_liveness.png")
 liveness
 dev.off()
 ```
@@ -284,7 +284,7 @@ sentiment <- song_df %>% ggplot(aes(x = sentiment, y = hitness)) +
   geom_smooth(method = "lm") +
   theme_bw()
 
-pdf("hitness_vs_sentiment.pdf")
+png("plots/hitness_vs_sentiment.png")
 sentiment
 dev.off()
 ```
@@ -299,14 +299,14 @@ loudness <- song_df %>% ggplot(aes(x = loudness, y = hitness)) +
   geom_smooth(method = "lm") +
   theme_bw()
 
-pdf("hitness_vs_loudness.pdf")
+png("plots/hitness_vs_loudness.png")
 loudness
 dev.off()
 ```
 
 ``` {r}
 #hitness vs instrumentalness
-loudness <- song_df %>% ggplot(aes(x = instrumentalness, y = hitness)) +
+instrumentalness <- song_df %>% ggplot(aes(x = instrumentalness, y = hitness)) +
   geom_point(color = "#2DB9F4") + 
   labs(title = "Hitness vs Instrumentalness", 
        x = "Instrumentalness", 
@@ -314,8 +314,8 @@ loudness <- song_df %>% ggplot(aes(x = instrumentalness, y = hitness)) +
   geom_smooth(method = "lm") +
   theme_bw()
 
-pdf("hitness_vs_instrumentalness.pdf")
-loudness
+png("plots/hitness_vs_instrumentalness.png")
+instrumentalness
 dev.off()
 ```
 
@@ -330,7 +330,7 @@ mode_gr <- ggplot(graph, aes(x = mode, y = hitness)) +
   labs(title = "Hitness vs Mode", x = "Mode", y = "Hitness") +
   theme_bw()
 
-pdf("hitness_vs_mode.pdf")
+png("plots/hitness_vs_mode.png")
 mode_gr
 dev.off()
 ```
@@ -347,7 +347,7 @@ sig_vs_hit <- ggplot(year, aes(x = time_signature, y = hitness)) +
   labs(title = "Hitness vs Time Signature", x = "Time Signature", y = "Hitness") +
   theme_bw()
 
-pdf("hitness_vs_time_signature.pdf")
+png("plots/hitness_vs_time_signature.png")
 sig_vs_hit
 dev.off()
 ```
@@ -363,7 +363,7 @@ key <- ggplot(key_gr, aes(x = key, y = hitness)) +
   labs(title = "Hitness vs Key", x = "Key", y = "Hitness") +
   theme_bw()
 
-pdf("hitness_vs_key.pdf")
+png("plots/hitness_vs_key.png")
 key
 ```
 

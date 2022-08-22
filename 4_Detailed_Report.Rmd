@@ -39,14 +39,23 @@ head(dataset.5)
 
 ### Log Scaling Popularity
 ```{r log scale pop}
-hist(dataset.1$popularity, main = "Artist Popularity Score", xlab = "popularity")
-hist(dataset.5$log_popularity, main = "Log of Artist Popularity Score", xlab = "log(popularity)")
+pdf("plots/artist_popularity_distribution.pdf")
+hist(dataset.1$popularity, main = "Distribution of Artist Popularity", xlab = "Artist Popularity")
+dev.off()
+
+pdf("plots/log_artist_popularity_distribution.pdf")
+hist(dataset.5$log_popularity, main = "Distribution of the Log of Artist Popularity Score", xlab = "log(Artist Popularity)")
+dev.off()
 ```
 
 ### Log Scaling Tempo
 ```{r log scale tempo}
-hist(dataset.1$tempo, main = "Tempo", xlab = "tempo")
-hist(dataset.5$log_tempo, main = "Log of Tempo", xlab = "log(tempo)")
+pdf("plots/tempo_distribution.pdf")
+hist(dataset.1$tempo, main = "Distribution of Tempo", xlab = "Tempo")
+dev.off()
+
+pdf("plots/log_tempo_distribution.odf")
+hist(dataset.5$log_tempo, main = "Distribution of the Log of Tempo", xlab = "log(Tempo)")
 ```
 
 ### Number of Rows / Feature Vectors

@@ -1,0 +1,126 @@
+---
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = F, comment = NA, cache = T, fig.width=8, fig.height=4, eval = F)
+
+if(!require('pacman')) {
+  install.packages('pacman')
+}
+pacman::p_load(ggplot2, dplyr, glmnet, car, tidyverse, gridExtra, ggrepel, plotly, skimr, data.table, xtable) 
+
+set.seed(9)
+```
+
+```{r load, eval = T}
+dataset.raw <- fread("group1_hit_songs_dataset_raw1.csv")
+dataset.1 <- fread("group1_hit_songs_dataset_ml_1.csv") 
+dataset.5 <- fread("group1_hit_songs_dataset_ml_5.csv") 
+```
+
+```{r}
+nrow(dataset.5)
+```
+
+```{r summarize clean base, eval = F}
+summary(dataset.1)
+```
+
+```{r summarize ml base, eval = F}
+summary(dataset.5)
+```
+
+```{r data split, eval = T}
+n <- nrow(dataset.5)
+dataset.5.train.index <- sample(n, n * 0.75)
+
+dataset.5.train <- dataset.5[dataset.5.train.index, ]
+dataset.5.test <- dataset.5.train <- dataset.5[-dataset.5.train.index, ]
+```
+
+```{r lm, eval = T}
+fit.lm.5 <- lm(hitness ~ ., dataset.5.train)
+fit.lm.5.accuracy <- 1 - mean(abs(round(predict(fit.lm.5, dataset.5.test)) - dataset.5.test$hitness))
+```
+
+```{r lm accuracy}
+fit.lm.5.accuracy
+```
+
+```{r lm coef, eval = F}
+summary(fit.lm.5)
+```
+
+```{r lm anova, eval = F}
+Anova(fit.lm.5)
+```
+
+```{r lm plot, eval = F}
+plot(fit.lm.5)
+```
+
+```{r log reg, eval = T}
+fit.glm.5 <- glm(hitness ~ ., dataset.5.train, family = binomial(logit))
+
+fit.glm.5.accuracy <- 1 - mean(abs(round(predict(fit.glm.5, dataset.5.test, type = "response")) - dataset.5.test$hitness))
+```
+
+```{r log reg accuracy}
+fit.glm.5.accuracy
+```
+
+```{r log reg coef, eval = F}
+summary(fit.glm.5)
+```
+
+```{r log reg anova, eval = F}
+Anova(fit.glm.5)
+```
+
+```{r log reg plots, eval = F}
+plot(fit.glm.5)
+```
+
+```{r lasso, eval = T}
+x.5 <- data.matrix(dataset.5.train %>% select(-hitness))
+y.5 <- dataset.5.train %>% select(hitness) %>% .$hitness
+
+cv_model.5 <- cv.glmnet(x.5, y.5, alpha = 1)
+
+fit.lasso.5 <- glmnet(x.5, y.5, alpha = 1, lambda = cv_model.5$lambda.1se)
+fit.lasso.5.coef <- coef(fit.lasso.5)
+fit.lasso.5.coef <- fit.lasso.5.coef[which(fit.lasso.5.coef != 0), ]
+fit.lasso.5.names <- rownames(data.matrix(fit.lasso.5.coef))[-1]
+
+predict.lasso.5 <- predict(fit.lasso.5, newx = data.matrix(dataset.5.test %>% select(-hitness)), type = "response")
+fit.lasso.5.accuracy <- 1 - mean(abs(round(predict.lasso.5) - dataset.5.test$hitness))
+```
+
+```{r log lasso reg, error = F, eval = T}
+fit.lasso.glm.5 <- glm(as.formula(paste("hitness ~", paste(all_of(fit.lasso.5.names), collapse = " + "))), dataset.5.train, family = binomial(logit))
+
+predict.lasso.glm.5 <- predict(fit.lasso.glm.5, dataset.5.test %>% select(all_of(fit.lasso.5.names)), type = "response")
+fit.lasso.glm.5.accuracy <- 1 - mean(abs(round(predict.lasso.glm.5) - dataset.5.test$hitness))
+```
+
+```{r log lasso reg accuracy}
+fit.lasso.glm.5.accuracy
+```
+
+```{r lasso plot, eval = F}
+plot(cv_model.5)
+title(main = "LASSO Log Selection (1SE)", line = 2.5)
+```
+
+```{r log lasso reg coef, eval = F}
+summary(fit.lasso.glm.5)
+```
+
+```{r log lasso reg anovam, eval = F}
+Anova(fit.lasso.glm.5)
+```
+
+```{r log lasso reg plots, eval = T}
+plot(fit.lasso.glm.5)
+```

@@ -140,19 +140,19 @@ n <- nrow(dataset.5)
 dataset.5.train.index <- sample(n, n * 0.75)
 
 dataset.5.train <- dataset.5[dataset.5.train.index, ]
-dataset.5.test <- dataset.5.train <- dataset.5[-dataset.5.train.index, ]
+dataset.5.test <- dataset.5[-dataset.5.train.index, ]
 
 n <- nrow(dataset.7)
 dataset.7.train.index <- sample(n, n * 0.75)
 
 dataset.7.train <- dataset.7[dataset.7.train.index, ]
-dataset.7.test <- dataset.7.train <- dataset.7[-dataset.7.train.index, ]
+dataset.7.test <- dataset.7[-dataset.7.train.index, ]
 
 n <- nrow(dataset.2)
 dataset.2.train.index <- sample(n, n * 0.75)
 
 dataset.2.train <- dataset.2[dataset.2.train.index, ]
-dataset.2.test <- dataset.2.train <- dataset.2[-dataset.2.train.index, ]
+dataset.2.test <- dataset.2[-dataset.2.train.index, ]
 ```
 
 
